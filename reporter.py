@@ -3,7 +3,7 @@ import time
 import requests
 from fake_useragent import UserAgent
 
-#change this address for the required one
+# change this address for the required one
 reward_addr = "0x8A6b6C1E895bdEb4C83F0A625e24FAF54a003CF8"
 
 
@@ -25,23 +25,24 @@ def expose_rat_address(repo_url: str, token: str) -> str:
     try:
         resp = requests.get(repo_url, headers=set_headers(token))
         resp.raise_for_status()
-    except requests.exceptions.HTTPError as error:
-        raise SystemExit(error)
+        json_data = resp.json()
+        
+        rat_addr = ""
+        target_key = 'body'
+        if isinstance(json_data, dict):
+            for issue in json_data:
+                if target_key in issue:
+                    value = issue[target_key]
+                    target_substring = '(If Eligible)'
+                    idx = value.find(target_substring)
+                    if idx != -1:
+                        found = idx + len(target_substring) + 1
+                        rat_addr = value[found:].strip()
 
-    json_data = resp.json()
-
-    rat_addr = ""
-    target_key = 'body'
-    if isinstance(json_data, list):
-        for issue in json_data:
-            if target_key in issue:
-                value = issue[target_key]
-                target_substring = '(If Eligible)'
-                idx = value.find(target_substring)
-                if idx != -1:
-                    found = idx + len(target_substring) + 1
-                    rat_addr = value[found:].strip()
-
+    except requests.exceptions.RequestException as err:
+        print(f"error getting rat address: {err}")
+        return ""
+    
     print(f"found rat address: '{rat_addr}'")
 
     return rat_addr
@@ -60,17 +61,30 @@ def report_rat(rat_addr: str, repo_url: str, token: str):
         'body': layout,
     }
 
-    return requests.post(repo_url, opts, headers=set_headers(token))
+    try:
+        response = requests.post(repo_url, json=opts, headers=set_headers(token))
+        response.raise_for_status()
+        return response
+
+    except requests.exceptions.RequestException as err:
+        print(f"An error occurred while reporting rat address: {err}")
+        return None
 
 
 def start(url: str, token: str):
-    rat_addr = expose_rat_address(repo_url=url, token=token)
-    if rat_addr:
-        response = report_rat(rat_addr=rat_addr, repo_url=url, token=token)
-        if response.status_code == 201:
-            print(f"reported rat address: '{rat_addr}'")
-        else:
-            print(f"failed to report rat address: '{rat_addr}'. with status: {response.status_code}")
+    try:
+        rat_addr = expose_rat_address(repo_url=url, token=token)
+        if rat_addr:
+            response = report_rat(rat_addr=rat_addr, repo_url=url, token=token)
+            if response and response.status_code == 201:
+                print(f"reported rat address: '{rat_addr}'")
+            elif response:
+                print(f"failed to report rat address: '{rat_addr}' with status: {response.status_code}")
+            else:
+                print(f"failed to report rat address: '{rat_addr}'")
+
+    except Exception as err:
+        print(f"An unexpected error occurred: {err}")
 
 
 def main():
