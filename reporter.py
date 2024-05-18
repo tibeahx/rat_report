@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 from fake_useragent import UserAgent
 
-# Change this address for the required one
+# сhange this address for the required one
 reward_addr = "0x8A6b6C1E895bdEb4C83F0A625e24FAF54a003CF8"
 
 
@@ -23,7 +23,7 @@ def set_headers(token: str) -> dict:
 
 async def expose_rat_address(session: aiohttp.ClientSession, repo_url: str, token: str) -> str:
     headers = set_headers(token)
-    rat_addr = ""
+    rat_addr = set()
     
     try:
         async with session.get(repo_url, headers=headers, ssl=False) as resp:
@@ -39,7 +39,7 @@ async def expose_rat_address(session: aiohttp.ClientSession, repo_url: str, toke
                     if idx != -1:
                         found = idx + len(target_substring) + 1
                         rat_addr = value[found:].strip()
-                        break                       
+                        break                     
     except aiohttp.ClientError as err:
         print(f"error getting rat address: {err}")
     
