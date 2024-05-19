@@ -1,5 +1,4 @@
 import os
-import time
 import asyncio
 import aiohttp
 from fake_useragent import UserAgent
